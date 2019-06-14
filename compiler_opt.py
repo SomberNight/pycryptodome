@@ -304,7 +304,7 @@ def set_compiler_options(package_root, extensions):
     clang = compiler_is_clang()
     gcc = compiler_is_gcc()
 
-    if has_stdint_h():
+    if True or has_stdint_h():
         extra_macros.append(("HAVE_STDINT_H", None))
 
     # Endianess
@@ -332,7 +332,7 @@ def set_compiler_options(package_root, extensions):
         extra_macros.append(("HAVE_CPUID_H", None))
 
     # Platform-specific call for getting a block of aligned memory
-    if compiler_has_posix_memalign():
+    if True or compiler_has_posix_memalign():
         extra_macros.append(("HAVE_POSIX_MEMALIGN", None))
     elif compiler_has_memalign():
         extra_macros.append(("HAVE_MEMALIGN", None))
