@@ -54,7 +54,8 @@ else:
 if sys.version_info[0] == 2 and sys.version_info[1] < 7:
     _buffer_type = (bytearray)
 else:
-    _buffer_type = (bytearray, memoryview)
+    #_buffer_type = (bytearray, memoryview)
+    _buffer_type = (bytearray, )
 
 
 class _VoidPointer(object):
@@ -197,7 +198,7 @@ except ImportError:
         _c_ssize_t = ctypes.c_ssize_t
 
     _PyBUF_SIMPLE = 0
-    _PyObject_GetBuffer = ctypes.pythonapi.PyObject_GetBuffer
+    #_PyObject_GetBuffer = ctypes.pythonapi.PyObject_GetBuffer
     _py_object = ctypes.py_object
     _c_ssize_p = ctypes.POINTER(_c_ssize_t)
 
@@ -226,11 +227,8 @@ except ImportError:
         if byte_string(data) or isinstance(data, _Array):
             return data
         elif isinstance(data, _buffer_type):
-            obj = _py_object(data)
-            buf = _Py_buffer()
-            _PyObject_GetBuffer(obj, byref(buf), _PyBUF_SIMPLE)
-            buffer_type = c_ubyte * buf.len
-            return buffer_type.from_address(buf.buf)
+            local_type = c_ubyte * len(data)
+            return local_type.from_buffer(data)
         else:
             raise TypeError("Object type %s cannot be passed to C code" % type(data))
 
