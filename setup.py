@@ -35,6 +35,7 @@ import os
 import sys
 import shutil
 import struct
+import traceback
 if sys.version_info[0:2] == (2, 6):
     from distutils import sysconfig
 else:
@@ -130,7 +131,7 @@ def PrintErr(*args, **kwd):
         w(kwd.get("end", "\n"))
 
 
-def test_compilation(program, extra_cc_options=None, extra_libraries=None, msg=''):
+def test_compilation(program, extra_cc_options=None, extra_libraries=None, msg='', hard_fail=False):
     """Test if a certain C program can be compiled."""
 
     # Create a temporary file with the C program
@@ -145,15 +146,8 @@ def test_compilation(program, extra_cc_options=None, extra_libraries=None, msg='
     oname = os.path.join("build", "test1.out")
 
     debug = False
-    # Mute the compiler and the linker
     if msg:
         PrintErr("Testing support for %s" % msg)
-    if not (debug or os.name == 'nt'):
-        old_stdout = os.dup(sys.stdout.fileno())
-        old_stderr = os.dup(sys.stderr.fileno())
-        dev_null = open(os.devnull, "w")
-        os.dup2(dev_null.fileno(), sys.stdout.fileno())
-        os.dup2(dev_null.fileno(), sys.stderr.fileno())
 
     objects = []
     try:
@@ -176,20 +170,16 @@ def test_compilation(program, extra_cc_options=None, extra_libraries=None, msg='
         result = True
     except CCompilerError:
         result = False
+        if hard_fail:
+            print("wululu ------------")
+            traceback.print_exc(file=sys.stdout)
+            raise
     for f in objects + [fname, oname]:
         try:
             os.remove(f)
         except OSError:
             pass
 
-    # Restore stdout and stderr
-    if not (debug or os.name=='nt'):
-        if old_stdout is not None:
-            os.dup2(old_stdout, sys.stdout.fileno())
-        if old_stderr is not None:
-            os.dup2(old_stderr, sys.stderr.fileno())
-        if dev_null is not None:
-            dev_null.close()
     if msg:
         if result:
             x = ""
@@ -310,7 +300,7 @@ class PCTBuildExt (build_ext):
             return 0;
         }
         """
-        return test_compilation(source, msg="memalign")
+        return test_compilation(source, msg="memalign", hard_fail=True)
 
     def detect_modules (self):
 
@@ -325,10 +315,11 @@ class PCTBuildExt (build_ext):
         if cpuid_h_present:
             self.compiler.define_macro("HAVE_CPUID_H")
 
-        if self.compiler_has_posix_memalign():
-            self.compiler.define_macro("HAVE_POSIX_MEMALIGN")
-        elif self.compiler_has_memalign():
-            self.compiler.define_macro("HAVE_MEMALIGN")
+        self.compiler.define_macro("HAVE_POSIX_MEMALIGN")
+        # if self.compiler_has_posix_memalign():
+        #     self.compiler.define_macro("HAVE_POSIX_MEMALIGN")
+        # elif self.compiler_has_memalign():
+        #     self.compiler.define_macro("HAVE_MEMALIGN")
 
         # AESNI
         aesni_result = (cpuid_h_present or intrin_h_present) and self.compiler_supports_aesni()
